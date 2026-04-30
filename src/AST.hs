@@ -21,7 +21,7 @@ data ExprL = And ExprL ExprL | Or ExprL ExprL | Not ExprL | Rel ExprR deriving S
 
 data Var = Id :#: (Tipo, Int) deriving Show
 
-data Funcao = Id : - >: ([Var], Tipo) deriving Show
+data Funcao = Id :->: ([Var], Tipo) deriving Show
 
 data Programa = Prog [Funcao] [(Id, [Var], Bloco)] [Var] Bloco deriving Show
 
