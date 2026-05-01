@@ -50,6 +50,5 @@ data Token =
     | RPAR                         -- )
     -- Símbolos especiais
     | COMMA                        -- ,
-    | NEWLINE                      -- \n
     | CMDEND                       -- ;
     deriving Show
