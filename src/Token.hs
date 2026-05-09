@@ -6,9 +6,9 @@ Este módulo visa definir todos os tokens da linguagem que serão retornados pel
 
 module Token where
 
-data Token =
+data Token
     -- Palavras-chave
-    | IF                           -- if
+    = IF                           -- if
     | ELSE                         -- else
     | WHILE                        -- while
     | RETURN                       -- return
@@ -43,8 +43,8 @@ data Token =
     | OR                           -- ||
     | NOT                          -- !
     -- Chaves
-    | LCHAVE                       -- {
-    | RCHAVE                       -- }
+    | LBRACES                      -- {
+    | RBRACES                      -- }
     -- Parênteses
     | LPAR                         -- (
     | RPAR                         -- )
