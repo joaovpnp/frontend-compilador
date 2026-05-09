@@ -16,9 +16,12 @@ $letter = [A-Za-z]
 @int = @sign? @base
 @double = @sign? (@base \. $digit* | \. $digit+)
 @id = ($letter | \_) ($letter | $digit | \_)*
+@string = \" [^\"]* \"
 
 tokens :-
 
+-- Whitespace 
+<0> $white+             ;
 -- Palavras Chave
 <0> "if"                {\s -> IF}
 <0> "else"              {\s -> ELSE}
@@ -26,7 +29,7 @@ tokens :-
 <0> "print"             {\s -> PRINT}
 <0> "int"               {\s -> INT}
 <0> "double"            {\s -> DOUBLE}
-
+<0> "string"            {\s -> STRING}
 <0> "void"              {\s -> VOID}
 -- Números
 <0> @sign? 0 $digit+    {\s -> error ("Erro léxico: número iniciando com zero: " ++ s)}
@@ -35,7 +38,7 @@ tokens :-
 -- Identificador de variável
 <0> @id                 {\s -> ID s}
 -- Constante para strings
-
+<0> @string             {\s -> LITERAL (init (tail s))}
 -- Operador de atribuição
 <0> "="                 {\s -> ASSIGN}
 --Operadores Aritméticos
