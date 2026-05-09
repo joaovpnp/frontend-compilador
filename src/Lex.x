@@ -8,15 +8,14 @@ import Token
 
 $digit [0-9]
 $nonzero [1-9]
+$letter = [A-Za-z]
 
 @sign = [\-\+]
 @base = (0 | $nonzero $digit*)
 
 @int = @sign? @base
 @double = @sign? (@base \. $digit* | \. $digit+)
-
-
-
+@id = ($letter | \_) ($letter | $digit | \_)*
 
 tokens :-
 
@@ -33,7 +32,7 @@ tokens :-
 <0> @double     {\s -> NUMDOUBLE (read s)}
 <0> @int        {\s -> NUMINT (read s)}
 -- Identificador de variável
-
+<0> @id         {\s -> ID s}
 -- Constante para strings
 
 -- Operador de atribuição
