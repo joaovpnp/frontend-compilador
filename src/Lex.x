@@ -1,13 +1,13 @@
 {
 module Lex where 
 
-import Token
+import Token as T
 }
 
 %wrapper "basic"
 
-$digit [0-9]
-$nonzero [1-9]
+$digit = [0-9]
+$nonzero = [1-9]
 $letter = [A-Za-z]
 
 @sign = [\-\+]
@@ -27,7 +27,7 @@ tokens :-
 <0> "int"       {\s -> INT}
 <0> "double"    {\s -> DOUBLE}
 
-<0> void        {\s -> VOID}
+<0> "void"      {\s -> VOID}
 -- Números
 <0> @double     {\s -> NUMDOUBLE (read s)}
 <0> @int        {\s -> NUMINT (read s)}
@@ -43,10 +43,10 @@ tokens :-
 <0> "*"         {\s -> MUL}
 <0> "/"         {\s -> DIV} 
 -- Operadores Relacionais
-<0> "=="        {\s -> EQ}
+<0> "=="        {\s -> T.EQ}
 <0> "/="        {\s -> DIFF}
-<0> "<"         {\s -> LT}
-<0> ">"         {\s -> GT}
+<0> "<"         {\s -> T.LT}
+<0> ">"         {\s -> T.GT}
 <0> "<="        {\s -> LE}
 <0> ">="        {\s -> GE}
 -- Operadores Lógicos
