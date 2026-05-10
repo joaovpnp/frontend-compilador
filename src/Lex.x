@@ -69,6 +69,7 @@ tokens :-
 <0> ";"                 {\s -> CMDEND}
 
 {
-testLex = do s <- getLine -- getContents
-             print (alexScanTokens s)
+testLex = do 
+        arqv <- readFile "teste.j--"
+        print (alexScanTokens arqv)
 }
