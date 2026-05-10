@@ -10,11 +10,11 @@ $digit = [0-9]
 $nonzero = [1-9]
 $letter = [A-Za-z]
 
-@sign = [\-\+]
+-- @sign = [\-\+]
 @base = (0 | $nonzero $digit*)
 
-@int = @sign? @base
-@double = @sign? (@base \. $digit* | \. $digit+)
+@int = @base
+@double = (@base \. $digit* | \. $digit+)
 @id = ($letter | \_) ($letter | $digit | \_)*
 @string = \" [^\"]* \"
 
@@ -25,6 +25,7 @@ tokens :-
 -- Palavras Chave
 <0> "if"                {\s -> IF}
 <0> "else"              {\s -> ELSE}
+<0> "while"             {\s -> WHILE}
 <0> "return"            {\s -> RETURN}
 <0> "print"             {\s -> PRINT}
 <0> "int"               {\s -> INT}
@@ -32,7 +33,7 @@ tokens :-
 <0> "string"            {\s -> STRING}
 <0> "void"              {\s -> VOID}
 -- Números
-<0> @sign? 0 $digit+    {\s -> error ("Erro léxico: número iniciando com zero: " ++ s)}
+<0> 0 $digit+    {\s -> error ("Erro léxico: número iniciando com zero: " ++ s)}
 <0> @double             {\s -> NUMDOUBLE (read s)}
 <0> @int                {\s -> NUMINT (read s)}
 -- Identificador de variável
