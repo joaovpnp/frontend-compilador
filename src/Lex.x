@@ -69,12 +69,7 @@ tokens :-
 <0> ";"                 {\s -> CMDEND}
 
 {
-<<<<<<< HEAD
-testLex = do s <- readFile "teste.j--" -- getContents
-             print (alexScanTokens s)
-=======
 testLex = do 
         arqv <- readFile "teste.j--"
         print (alexScanTokens arqv)
->>>>>>> f537363d8b585db6e9124a6f4c55aa02f98b1d3a
 }

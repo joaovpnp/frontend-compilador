@@ -9319,39 +9319,6 @@ alex_actions = Data.Array.array (0 :: Int, 66)
 
 alex_action_1 = \s -> IF
 alex_action_2 = \s -> ELSE
-<<<<<<< HEAD
-alex_action_3 = \s -> RETURN
-alex_action_4 = \s -> PRINT
-alex_action_5 = \s -> INT
-alex_action_6 = \s -> DOUBLE
-alex_action_7 = \s -> STRING
-alex_action_8 = \s -> VOID
-alex_action_9 = \s -> error ("Erro léxico: número iniciando com zero: " ++ s)
-alex_action_10 = \s -> NUMDOUBLE (read s)
-alex_action_11 = \s -> NUMINT (read s)
-alex_action_12 = \s -> ID s
-alex_action_13 = \s -> LITERAL (init (tail s))
-alex_action_14 = \s -> ASSIGN
-alex_action_15 = \s -> ADD
-alex_action_16 = \s -> SUB
-alex_action_17 = \s -> MUL
-alex_action_18 = \s -> DIV
-alex_action_19 = \s -> T.EQ
-alex_action_20 = \s -> DIFF
-alex_action_21 = \s -> T.LT
-alex_action_22 = \s -> T.GT
-alex_action_23 = \s -> LE
-alex_action_24 = \s -> GE
-alex_action_25 = \s -> AND
-alex_action_26 = \s -> OR
-alex_action_27 = \s -> NOT
-alex_action_28 = \s -> LBRACES
-alex_action_29 = \s -> RBRACES
-alex_action_30 = \s -> LPAR
-alex_action_31 = \s -> RPAR
-alex_action_32 = \s -> COMMA
-alex_action_33 = \s -> CMDEND
-=======
 alex_action_3 = \s -> WHILE
 alex_action_4 = \s -> RETURN
 alex_action_5 = \s -> PRINT
@@ -9384,7 +9351,6 @@ alex_action_31 = \s -> LPAR
 alex_action_32 = \s -> RPAR
 alex_action_33 = \s -> COMMA
 alex_action_34 = \s -> CMDEND
->>>>>>> f537363d8b585db6e9124a6f4c55aa02f98b1d3a
 
 #define ALEX_NOPRED 1
 -- -----------------------------------------------------------------------------
@@ -9617,13 +9583,7 @@ alexRightContext IBOX(sc) user__ _ _ input__ =
         -- match when checking the right context, just
         -- the first match will do.
 #endif
-<<<<<<< HEAD
-{-# LINE 70 "Lex.x" #-}
-testLex = do s <- readFile "teste.j--" -- getContents
-             print (alexScanTokens s)
-=======
 {-# LINE 71 "Lex.x" #-}
 testLex = do 
         arqv <- readFile "teste.j--"
         print (alexScanTokens arqv)
->>>>>>> f537363d8b585db6e9124a6f4c55aa02f98b1d3a
