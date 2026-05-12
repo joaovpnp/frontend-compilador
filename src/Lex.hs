@@ -8559,7 +8559,7 @@ alex_action_9 = \s -> error ("Erro léxico: número iniciando com zero: " ++ s)
 alex_action_10 = \s -> NUMDOUBLE (read s)
 alex_action_11 = \s -> NUMINT (read s)
 alex_action_12 = \s -> ID s
-alex_action_13 = \s -> LITERAL s
+alex_action_13 = \s -> LITERAL (init (tail s))
 alex_action_14 = \s -> ASSIGN
 alex_action_15 = \s -> ADD
 alex_action_16 = \s -> SUB
@@ -8813,5 +8813,5 @@ alexRightContext IBOX(sc) user__ _ _ input__ =
         -- the first match will do.
 #endif
 {-# LINE 70 "Lex.x" #-}
-testLex = do s <- getLine -- getContents
+testLex = do s <- readFile "teste.j--" -- getContents
              print (alexScanTokens s)
