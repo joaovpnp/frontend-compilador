@@ -27,6 +27,7 @@ tokens :-
 <0> "else"              {\s -> ELSE}
 <0> "while"             {\s -> WHILE}
 <0> "return"            {\s -> RETURN}
+<0> "read"              {\s -> READ}
 <0> "print"             {\s -> PRINT}
 <0> "int"               {\s -> INT}
 <0> "double"            {\s -> DOUBLE}

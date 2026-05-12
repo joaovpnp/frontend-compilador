@@ -12,6 +12,7 @@ data Token
     | ELSE                         -- else
     | WHILE                        -- while
     | RETURN                       -- return
+    | READ                         -- read
     | PRINT                        -- print
     | INT                          -- int
     | DOUBLE                       -- double
