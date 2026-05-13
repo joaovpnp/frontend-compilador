@@ -33,10 +33,10 @@ data Token
     | MUL                          -- *
     | DIV                          -- /
     -- Operadores relacionais
-    | EQ                           -- ==
+    | TEQ                           -- ==
     | DIFF                         -- /=
-    | LT                           -- <
-    | GT                           -- >
+    | TLT                           -- <
+    | TGT                           -- >
     | LE                           -- <=
     | GE                           -- >=
     -- Operadores lógicos

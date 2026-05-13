@@ -1,7 +1,7 @@
 {
 module Lex where 
 
-import Token as T
+import Token
 }
 
 %wrapper "basic"
@@ -49,10 +49,10 @@ tokens :-
 <0> "*"                 {\s -> MUL}
 <0> "/"                 {\s -> DIV} 
 -- Operadores Relacionais
-<0> "=="                {\s -> T.EQ}
+<0> "=="                {\s -> TEQ}
 <0> "/="                {\s -> DIFF}
-<0> "<"                 {\s -> T.LT}
-<0> ">"                 {\s -> T.GT}
+<0> "<"                 {\s -> TLT}
+<0> ">"                 {\s -> TGT}
 <0> "<="                {\s -> LE}
 <0> ">="                {\s -> GE}
 -- Operadores Lógicos

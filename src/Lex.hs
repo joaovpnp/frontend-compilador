@@ -6,7 +6,7 @@
 {-# LINE 1 "Lex.x" #-}
 module Lex where 
 
-import Token as T
+import Token
 #include "ghcconfig.h"
 import qualified Data.Array
 import qualified Data.Char
@@ -9645,10 +9645,10 @@ alex_action_17 = \s -> ADD
 alex_action_18 = \s -> SUB
 alex_action_19 = \s -> MUL
 alex_action_20 = \s -> DIV
-alex_action_21 = \s -> T.EQ
+alex_action_21 = \s -> TEQ
 alex_action_22 = \s -> DIFF
-alex_action_23 = \s -> T.LT
-alex_action_24 = \s -> T.GT
+alex_action_23 = \s -> TLT
+alex_action_24 = \s -> TGT
 alex_action_25 = \s -> LE
 alex_action_26 = \s -> GE
 alex_action_27 = \s -> AND
