@@ -43,9 +43,12 @@ void imprimir(string s, double r)
 }
 
 {
-  int x, num;
+  int x, num, k;
   double a;
   
+  k = -3;
+  k = k - -5;
+
   print("Numero:");
   read (num);
   x = fat (4.5);
