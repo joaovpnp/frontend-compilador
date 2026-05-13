@@ -35,3 +35,42 @@ data Comando = If ExprL Bloco Bloco
             | Ret (Maybe Expr)
             | Proc Id [Expr]
             deriving Show
+
+printBloco :: [Comando] -> String
+printBloco [] = ""
+printBloco (c:cs) = show c ++ "\n" ++ printBloco cs
+
+printVars :: [Var] -> String
+printVars [] = ""
+printVars [nome :#: (tipo, frame)] = 
+    nome ++ " :: " ++ show tipo ++ " (frame " ++ show frame ++ ")\n"
+printVars ((nome :#: (tipo, frame)):vs) = 
+    nome ++ " :: " ++ show tipo ++ " (frame " ++ show frame ++ "),\n" ++ 
+    printVars vs
+
+printAssFuncoes :: [Funcao] -> String
+printAssFuncoes [] = ""
+printAssFuncoes ((nome :->: (vars, tipo)):fs) = 
+    show tipo ++ " " ++ nome ++ ", variaveis:\n" ++ 
+    printVars vars ++ "\n" ++ 
+    printAssFuncoes fs
+
+printCodFuncoes :: [(Id, [Var], Bloco)] -> String
+printCodFuncoes [] = ""
+printCodFuncoes ((nome, vars, bloco):cs) = 
+    nome ++ " {\n\n" ++ 
+    printBloco bloco ++ 
+    "}\n\n" ++ 
+    printCodFuncoes cs
+
+printProg :: Programa -> String
+printProg (Prog assFuncoes codFuncoes varGlobais codPrincipal) = 
+    "Programa\n\n" ++
+    "Assinaturas das Funcoes\n\n" ++ 
+    printAssFuncoes assFuncoes ++ "\n" ++
+    "Codigo das Funcoes\n\n" ++ 
+    printCodFuncoes codFuncoes ++ 
+    "Variaveis Globais\n\n" ++ 
+    printVars varGlobais ++ "\n\n" ++
+    "Main\n\n" ++ 
+    printBloco codPrincipal
