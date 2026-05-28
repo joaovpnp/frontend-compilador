@@ -42,10 +42,3 @@ isVarDuplamenteDeclarada ((id :#: (_,_)):xs) idVariavel
     | idVariavel == id = xor True (isVarDuplamenteDeclarada xs idVariavel)
     | otherwise = xor False (isVarDuplamenteDeclarada xs idVariavel)
 
-testarDeclaracaoFuncoes [] _ = False
-testarDeclaracaoFuncoes xs [] = True
-testarDeclaracaoFuncoes xs (y:ys) = isFuncaoDeclarada xs y && (not isFuncaoDuplamenteDeclarada  xs y) && testarDeclaracaoFuncoes xs ys
-
-testarDeclaracaoVars [] _ = False
-testarDeclaracaoVars xs [] = True
-testarDeclaracaoVars xs (y:ys) = isVarDeclarada xs y && (not isVarDuplamenteDeclarada  xs y) && testarDeclaracaoVars xs ys
