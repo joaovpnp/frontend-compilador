@@ -52,4 +52,6 @@ data Token
     -- Símbolos especiais
     | COMMA                        -- ,
     | CMDEND                       -- ;
-    deriving Show
+    -- Token para o analisador semântico
+    | PROC
+    deriving (Show,Eq)
