@@ -1,8 +1,12 @@
 module AST where
 
+import Data.List (intercalate)
+import Imprimivel
+import Token
+
 type Id = String
 
-data Tipo = TDouble | TInt | TString | TVoid deriving (Show, Eq)
+data Tipo = TDouble | TInt | TString | TVoid | TIgnore deriving (Show, Eq)
 
 data TCons = CDouble Double | CInt Int deriving Show
 
@@ -36,22 +40,75 @@ data Comando = If ExprL Bloco Bloco
             | Proc Id [Expr]
             deriving Show
 
+-- Funções para melhorar legibilidade da AST
+
+printTipo :: Tipo -> String
+printTipo t
+    | t == TDouble = "double"
+    | t == TInt = "int"
+    | t == TString = "string"
+    | otherwise = "void"
+
+printConst :: TCons -> String
+printConst (CDouble c) = show c
+printConst (CInt c) = show c
+
+printExpr :: Expr -> String
+printExpr (IdVar id) = id
+printExpr (Lit literal) = "\"" ++ literal ++ "\""
+printExpr (Const c) = printConst c
+printExpr (IntDouble e) = "(double)" ++ printExpr e
+printExpr (DoubleInt e) = "(int)" ++ printExpr e
+printExpr (Neg e) = "-(" ++ printExpr e ++ ")"
+printExpr (Add e1 e2) = "(" ++ printExpr e1 ++ ") + (" ++ printExpr e2 ++ ")"
+printExpr (Sub e1 e2) = "(" ++ printExpr e1 ++ ") - (" ++ printExpr e2 ++ ")"
+printExpr (Mul e1 e2) = "(" ++ printExpr e1 ++ ") * (" ++ printExpr e2 ++ ")"
+printExpr (Div e1 e2) = "(" ++ printExpr e1 ++ ") / (" ++ printExpr e2 ++ ")"
+printExpr (Chamada id exps) = id ++ "(" ++ intercalate ", " (map printExpr exps) ++ ")"
+
+printExprRel :: ExprR -> String
+printExprRel (Req e1 e2) = printExpr e1 ++ " == " ++ printExpr e2
+printExprRel (Rdif e1 e2) = printExpr e1 ++ " != " ++ printExpr e2
+printExprRel (Rlt e1 e2) = printExpr e1 ++ " < " ++ printExpr e2
+printExprRel (Rgt e1 e2) = printExpr e1 ++ " > " ++ printExpr e2
+printExprRel (Rle e1 e2) = printExpr e1 ++ " <= " ++ printExpr e2
+printExprRel (Rge e1 e2) = printExpr e1 ++ " >= " ++ printExpr e2
+
+printExprLog :: ExprL -> String
+printExprLog (And e1 e2) = "(" ++ printExprLog e1 ++ ") && (" ++ printExprLog e2 ++ ")"
+printExprLog (Or e1 e2) = "(" ++ printExprLog e1 ++ ") || (" ++ printExprLog e2 ++ ")"
+printExprLog (Not e1) = "!(" ++ printExprLog e1 ++ ")"
+printExprLog (Rel r) = printExprRel r
+
+printComando :: Comando -> String
+printComando (If el b1 []) = "if (" ++ printExprLog el ++ ") {\n" ++ printBloco b1 ++ "}"
+printComando (If el b1 b2) = "if (" ++ printExprLog el ++ ") {\n" ++ printBloco b1 ++ "} else {\n" ++ printBloco b2 ++ "}"
+printComando (While el b) = "while (" ++ printExprLog el ++ ") {\n" ++ printBloco b ++ "}"
+printComando (Atrib id e) = id ++ " = " ++ printExpr e
+printComando (Leitura id) = "read(" ++ id ++ ")"
+printComando (Imp e) = "print(" ++ printExpr e ++ ")"
+printComando (Ret Nothing) = "return"
+printComando (Ret (Just e)) = "return (" ++ printExpr e ++ ")"
+printComando (Proc id exps) = printExpr (Chamada id exps)
+
 printBloco :: [Comando] -> String
 printBloco [] = ""
-printBloco (c:cs) = show c ++ "\n" ++ printBloco cs
+printBloco ((If el b1 b2):cs) = printComando (If el b1 b2) ++ "\n" ++ printBloco cs
+printBloco ((While el b):cs) = printComando (While el b) ++ "\n" ++ printBloco cs
+printBloco (c:cs) = printComando c ++ ";\n" ++ printBloco cs
 
 printVars :: [Var] -> String
 printVars [] = ""
 printVars [nome :#: (tipo, frame)] = 
-    nome ++ " :: " ++ show tipo ++ " (frame " ++ show frame ++ ")\n"
+    nome ++ " :: " ++ printTipo tipo ++ " (frame " ++ show frame ++ ")\n"
 printVars ((nome :#: (tipo, frame)):vs) = 
-    nome ++ " :: " ++ show tipo ++ " (frame " ++ show frame ++ "),\n" ++ 
+    nome ++ " :: " ++ printTipo tipo ++ " (frame " ++ show frame ++ "),\n" ++ 
     printVars vs
 
 printAssFuncoes :: [Funcao] -> String
 printAssFuncoes [] = ""
 printAssFuncoes ((nome :->: (vars, tipo)):fs) = 
-    show tipo ++ " " ++ nome ++ ", variaveis:\n" ++ 
+    printTipo tipo ++ " " ++ nome ++ ", variaveis:\n" ++ 
     printVars vars ++ "\n" ++ 
     printAssFuncoes fs
 
@@ -72,5 +129,37 @@ printProg (Prog assFuncoes codFuncoes varGlobais codPrincipal) =
     printCodFuncoes codFuncoes ++ 
     "Variaveis Globais\n\n" ++ 
     printVars varGlobais ++ "\n\n" ++
-    "Main\n\n" ++ 
-    printBloco codPrincipal
+    "Main\n\n{\n" ++ 
+    printBloco codPrincipal ++
+    "\n}\n"
+
+-- Utilizando o polimorfismo da classe Imprimivel
+
+instance Imprimivel Expr where
+    formatar = printExpr
+
+instance Imprimivel ExprR where
+    formatar = printExprRel
+
+instance Imprimivel ExprL where
+    formatar = printExprLog
+
+instance Imprimivel Comando where
+    formatar = printComando
+
+-- funcoes para construir expressoes a partir de tokens dados
+-- é necessário uma função para cada tipo: Expr, ExprR, etc.
+
+constrExprA token e1 e2
+    | token == ADD = Add e1 e2
+    | token == SUB = Sub e1 e2
+    | token == MUL = Mul e1 e2
+    | token == DIV = Div e1 e2
+
+constrExprR token e1 e2
+    | token == TEQ = Req e1 e2
+    | token == DIFF = Rdif e1 e2
+    | token == TLT = Rlt e1 e2
+    | token == TGT = Rgt e1 e2
+    | token == LE = Rle e1 e2
+    | token == GE = Rge e1 e2
