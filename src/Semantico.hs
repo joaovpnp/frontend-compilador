@@ -4,6 +4,8 @@ import AST
 import Token
 import Imprimivel
 import Parser
+import Imprimivel (erroDeTipo)
+import Distribution.TestSuite (Result(Error))
 
 -- funções de verificação gerais
 
@@ -44,6 +46,9 @@ arExprA token (t1, e1) (t2, e2)
 
 arExprR token (t1, e1) (t2, e2)
     | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
+    | t1 == TString && t2 == TString = do return (TString, expressao)
+    | t1 == TString || t2 == TString = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" e tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao relacional") expressao
+                                          return (TIgnore, expressao)
     | not ((isNum t1) || (isNum t2)) = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" e tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao relacional") expressao
                                           return (TIgnore, expressao)
     | not (isNum t1) = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" para operacao relacional") expressao
@@ -104,9 +109,56 @@ verificarExpr tf tv (IdVar id) = do let (tipo, idvar) = buscarVar tv id
                                                                                              errorMsg ("variavel \"" ++ id ++ "\" nao esta declarada");
                                                                                              return (TIgnore, IdVar id);
                                                                                          }
-verificarExpr tf tv (Add e1 e2) = do newE1 <- verificarExpr tf tv e1 -- retorno 1
-                                     newE2 <- verificarExpr tf tv e2 -- retorno 2
-                                     arExprA ADD newE1 newE2
+
+verificarExpr tf tv (Const (CInt c)) = return (TInt, Const (CInt c))   
+
+verificarExpr tf tv (Const (CDouble c)) = return (TDouble, Const (CDouble c))
+
+verificarExpr tf tv (Lit s) = return (TString, Lit s)
+
+validaExpr tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
+                                  newE2 <- verificarExpr tf tv e2
+                                  arExprA token newE1 newE2
+    
+verificarExpr tf tv (Add e1 e2) = validaExpr tf tv ADD e1 e2
+verificarExpr tf tv (Sub e1 e2) = validaExpr tf tv SUB e1 e2
+verificarExpr tf tv (Mul e1 e2) = validaExpr tf tv MUL e1 e2
+verificarExpr tf tv (Div e1 e2) = validaExpr tf tv DIV e1 e2
+
+verificarExpr tf tv (Neg e) = do (t, newE) <- verificarExpr tf tv e
+                                 if isNum t then
+                                    return (t, Neg newE)
+                                 else if t == TIgnore then 
+                                    return (TIgnore, Neg newE)
+                                 else do
+                                    erroDeTipo "operador de negativo requer tipo numerico" e
+                                    return (TIgnore, Neg newE)
+
+validaExprR tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
+                                   newE2 <- verificarExpr tf tv e2
+                                   arExprR token newE1 newE2
+
+verificarExprR tf tv (Req e1 e2) = validaExprR tf tv TEQ e1 e2
+verificarExprR tf tv (Rdif e1 e2) = validaExprR tf tv DIFF e1 e2
+verificarExprR tf tv (Rlt e1 e2) = validaExprR tf tv TLT e1 e2
+verificarExprR tf tv (Rgt e1 e2) = validaExprR tf tv TGT e1 e2
+verificarExprR tf tv (Rle e1 e2) = validaExprR tf tv LE e1 e2
+verificarExprR tf tv (Rge e1 e2) = validaExprR tf tv GE e1 e2
+
+verificarExprL tf tv (Rel exprR) = do (tipo, novaExprR) <- verificarExprR tf tv exprR
+                                      return (Rel novaExprR)
+
+verificarExprL tf tv (And e1 e2) = do newE1 <- verificarExprL tf tv e1
+                                      newE2 <- verificarExprL tf tv e2
+                                      return (And newE1 newE2)
+                                   
+verificarExprL tf tv (Or e1 e2) = do newE1 <- verificarExprL tf tv e1
+                                     newE2 <- verificarExprL tf tv e2
+                                     return (Or newE1 newE2)
+
+verificarExprL tf tv (Not e) = do newE <- verificarExprL tf tv e
+                                  return (Not newE)
+
 
 -- teste simples para ilustrar o comportamento
 
