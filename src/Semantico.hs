@@ -83,7 +83,11 @@ arAtrib (t1, id) (t2, e)
         stringTipo2 = printTipo t2
         stringE = formatar e
 
-arRet (t1, id) (t2, e)
+arRet (t1, id) (t2, Nothing)
+    | t1 == TIgnore || t1 == TVoid = return (t1, Ret Nothing)
+    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno " ++ stringE ++ " (" ++ stringTipo2 ++ ")") expressao
+                     return (TIgnore, Ret Nothing)
+arRet (t1, id) (t2, Just e)
     | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
     | t1 == t2 = do return (t1, Ret (Just e))
     | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE ++ "\" no retorno da funcao " ++ id) expressao
@@ -93,10 +97,21 @@ arRet (t1, id) (t2, e)
     | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno " ++ stringE ++ " (" ++ stringTipo2 ++ ")") expressao
                      return (TIgnore, expressao)
     where
-        expressao = Ret e
+        expressao = Ret (Just e)
         stringTipo1 = printTipo t1
         stringTipo2 = printTipo t2
         stringE = formatar e
+
+arChamada funcao chamada (t1, e1) (t2, e2)
+    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, e2)
+    | t1 == t2 = do return (t1, e2)
+    | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE2 ++ "\" como parametro da funcao " ++ printAssinaturaFuncao funcao) chamada
+                           return (TDouble, IntDouble e2)
+    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre parametros da funcao \"" ++ printAssinaturaFuncao funcao ++ " e o parametro " ++ stringE ++ " (" ++ stringTipo2 ++ ")") chamada
+                     return (TIgnore, e2)
+    where
+        stringTipo2 = printTipo t2
+        stringE2 = formatar e2
 
 -- verificadores de tipo
 {-
