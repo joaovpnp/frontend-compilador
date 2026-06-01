@@ -135,20 +135,14 @@ verificarExpr tf tv (Neg e) = do (t, newE) <- verificarExpr tf tv e
                                     erroDeTipo "operador de negativo requer tipo numerico" e
                                     return (TIgnore, Neg newE)
 
-{-
-comparaTipos [] [] = pure ()
-comparaTipos xs []
-
-comparaTipos ((t1, _):xs) ((t2,_):ys)
-    | t1 == t2 = comparaTipos xs ys
-    | t1 /= t2 = 
--}
-
-verificarExpr tf tv (Chamada id parametros) = do (tipo, nome, p) <- buscarFuncao tf id 
-                                           if tipo == TIgnore then do errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
+verificarExpr tf tv (Chamada id parametros) = do (tipoRetorno, nome, parametrosEsperados) <- buscarFuncao tf id 
+                                           if tipoRetorno == TIgnore then do 
+                                              errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
                                               return (TIgnore, Chamada id parametros)
                                            else do
-                                              lista <- mapM (verificarExpr tf tv) parametros
+                                              parametrosAvaliados <- mapM (verificarExpr tf tv) parametros
+                                              novosParametros <- comparaTipos (nome :->: (parametrosEsperados, tipo)) (Chamada id parametros) parametrosEsperados parametrosAvaliados
+                                              return (tipoRetorno, Chamada id novosParametros)
 
 
 validaExprR tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
