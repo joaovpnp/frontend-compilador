@@ -143,6 +143,9 @@ instance Imprimivel ExprL where
 instance Imprimivel Comando where
     formatar = printComando
 
+instance Imprimivel Funcao where
+    formatar = printAssinaturaFuncao
+
 -- funcoes para construir expressoes a partir de tokens dados
 -- é necessário uma função para cada tipo: Expr, ExprR, etc.
 
