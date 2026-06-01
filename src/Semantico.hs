@@ -150,6 +150,10 @@ verificarExpr tf tv (Neg e) = do (t, newE) <- verificarExpr tf tv e
                                     erroDeTipo "operador de negativo requer tipo numerico" e
                                     return (TIgnore, Neg newE)
 
+comparaTipos f c [] [] = return []
+comparaTipos f c xs [] = do errorMsg (Quantidade de parametros invalida para a funcao ++ printAssinaturaFuncao f ++ na expressao ++ formatar c
+comparaTipos f c (x:xs) (y:ys) = return (arChamada f c x y : comparaTipos f c xs ys)
+
 verificarExpr tf tv (Chamada id parametros) = do (tipoRetorno, nome, parametrosEsperados) <- buscarFuncao tf id 
                                            if tipoRetorno == TIgnore then do 
                                               errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
