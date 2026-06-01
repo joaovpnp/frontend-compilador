@@ -55,8 +55,8 @@ Programa : ListaFuncoes BlocoPrincipal                           {Prog (separarA
 ListaFuncoes : ListaFuncoes Funcao                               {$1 ++ $2}
              | Funcao                                            {$1}
 
-Funcao : TipoRet Id '(' ParamFormais ')' BlocoPrincipal          {[($2 :->: (getVarsFuncao $4 $6, $1), snd $6)]}
-       | TipoRet Id '('')' BlocoPrincipal                        {[($2 :->: (fst $5, $1), snd $5)]}
+Funcao : TipoRet Id '(' ParamFormais ')' BlocoPrincipal          {[($2 :->: (criarVars $4, $1), $6)]}
+       | TipoRet Id '('')' BlocoPrincipal                        {[($2 :->: ([], $1), $5)]}
 
 Tipo : int                                                       {TInt}
      | double                                                    {TDouble}
@@ -158,13 +158,10 @@ parseError s = error ("Parse error:" ++ show s)
 criarVars [] = []
 criarVars ((tipo, nome):pars) = (nome :#: (tipo, 0)) : criarVars pars
 
-getVarsFuncao [] bloco = fst bloco
-getVarsFuncao pars bloco = (criarVars pars) ++ (fst bloco)
-
 separarAssinatura xs = (fst . unzip) xs
 
 separarBloco [] = []
-separarBloco ((id :->: (vars, tipo), bloco):xs) = (id, vars, bloco) : separarBloco xs
+separarBloco ((id :->: (_,_), (vars, bloco)):xs) = (id, vars, bloco) : separarBloco xs
 
 main = do prog <- readFile "teste.j--"
           let a = calc (L.alexScanTokens prog)

@@ -209,7 +209,7 @@ happyReduction_5 ((HappyAbsSyn12  happy_var_6) `HappyStk`
         (HappyAbsSyn9  happy_var_1) `HappyStk`
         happyRest)
          = HappyAbsSyn7
-                 ([(happy_var_2 :->: (getVarsFuncao happy_var_4 happy_var_6, happy_var_1), snd happy_var_6)]
+                 ([(happy_var_2 :->: (criarVars happy_var_4, happy_var_1), happy_var_6)]
         ) `HappyStk` happyRest
 
 happyReduce_6 = happyReduce 5# 2# happyReduction_6
@@ -220,7 +220,7 @@ happyReduction_6 ((HappyAbsSyn12  happy_var_5) `HappyStk`
         (HappyAbsSyn9  happy_var_1) `HappyStk`
         happyRest)
          = HappyAbsSyn7
-                 ([(happy_var_2 :->: (fst happy_var_5, happy_var_1), snd happy_var_5)]
+                 ([(happy_var_2 :->: ([], happy_var_1), happy_var_5)]
         ) `HappyStk` happyRest
 
 happyReduce_7 = happySpecReduce_1  3# happyReduction_7
@@ -876,7 +876,7 @@ getVarsFuncao pars bloco = (criarVars pars) ++ (fst bloco)
 separarAssinatura xs = (fst . unzip) xs
 
 separarBloco [] = []
-separarBloco ((id :->: (vars, tipo), bloco):xs) = (id, vars, bloco) : separarBloco xs
+separarBloco ((id :->: (_,_), (vars, bloco)):xs) = (id, vars, bloco) : separarBloco xs
 
 main = do prog <- readFile "teste.j--"
           let a = calc (L.alexScanTokens prog)

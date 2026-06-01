@@ -97,39 +97,35 @@ printBloco ((If el b1 b2):cs) = printComando (If el b1 b2) ++ "\n" ++ printBloco
 printBloco ((While el b):cs) = printComando (While el b) ++ "\n" ++ printBloco cs
 printBloco (c:cs) = printComando c ++ ";\n" ++ printBloco cs
 
+printVar :: Var -> String
+printVar (nome :#: (tipo, frame)) = printTipo tipo ++ " " ++ nome ++ " (frame " ++ show frame ++ ")"
+
 printVars :: [Var] -> String
 printVars [] = ""
-printVars [nome :#: (tipo, frame)] = 
-    nome ++ " :: " ++ printTipo tipo ++ " (frame " ++ show frame ++ ")\n"
-printVars ((nome :#: (tipo, frame)):vs) = 
-    nome ++ " :: " ++ printTipo tipo ++ " (frame " ++ show frame ++ "),\n" ++ 
-    printVars vs
+printVars [v] = printVar v ++ ";\n"
+printVars (v:vs) = printVar v ++ ";\n" ++ printVars vs
 
-printAssFuncoes :: [Funcao] -> String
-printAssFuncoes [] = ""
-printAssFuncoes ((nome :->: (vars, tipo)):fs) = 
-    printTipo tipo ++ " " ++ nome ++ ", variaveis:\n" ++ 
-    printVars vars ++ "\n" ++ 
-    printAssFuncoes fs
+printPars :: [Var] -> [String]
+printPars [] = []
+printPars (v:vs) = [printVar v] ++ printPars vs
 
-printCodFuncoes :: [(Id, [Var], Bloco)] -> String
-printCodFuncoes [] = ""
-printCodFuncoes ((nome, vars, bloco):cs) = 
-    nome ++ " {\n\n" ++ 
-    printBloco bloco ++ 
-    "}\n\n" ++ 
-    printCodFuncoes cs
+printAssinaturaFuncao :: Funcao -> String
+printAssinaturaFuncao (nome :->: (vars, tipo)) = 
+    printTipo tipo ++ " " ++ nome ++ "(" ++ (intercalate ", " (printPars vars)) ++ ")"
+
+printCodFuncoes :: [Funcao] -> [(Id, [Var], Bloco)] -> String
+printCodFuncoes [] [] = ""
+printCodFuncoes (f:fs) ((nome, vars, bloco):cs) = 
+    printAssinaturaFuncao f ++ " {\n" ++
+    printVars vars ++
+    printBloco bloco ++ "\n}\n\n" ++ printCodFuncoes fs cs
 
 printProg :: Programa -> String
 printProg (Prog assFuncoes codFuncoes varGlobais codPrincipal) = 
     "Programa\n\n" ++
-    "Assinaturas das Funcoes\n\n" ++ 
-    printAssFuncoes assFuncoes ++ "\n" ++
-    "Codigo das Funcoes\n\n" ++ 
-    printCodFuncoes codFuncoes ++ 
-    "Variaveis Globais\n\n" ++ 
-    printVars varGlobais ++ "\n\n" ++
-    "Main\n\n{\n" ++ 
+    printCodFuncoes assFuncoes codFuncoes ++
+    "Main() {\n" ++
+    printVars varGlobais ++
     printBloco codPrincipal ++
     "\n}\n"
 
