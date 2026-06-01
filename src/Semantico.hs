@@ -6,6 +6,7 @@ import Imprimivel
 import Parser
 import Imprimivel (erroDeTipo)
 import Distribution.TestSuite (Result(Error))
+import Text.XHtml (blockquote)
 
 -- funções de verificação gerais
 
@@ -15,10 +16,10 @@ buscarVar ((id :#: (tipo,_)):xs) idVariavel
     | id == idVariavel = (tipo, IdVar id)
     | otherwise = buscarVar xs idVariavel
 
-buscarFuncao :: [Funcao] -> Id -> (Tipo, Id)
+buscarFuncao :: [Funcao] -> Id -> (Tipo, Id, [Var])
 buscarFuncao [] id = (TIgnore, id)
-buscarFuncao ((id :->: (_, tipo)):xs) idFuncao
-    | id == idFuncao = (tipo, id)
+buscarFuncao ((id :->: (pars, tipo)):xs) idFuncao
+    | id == idFuncao = (tipo, id, pars)
     | otherwise = buscarFuncao xs idFuncao
 
 isNum t = t == TInt || t == TDouble
@@ -92,7 +93,7 @@ arRet (t1, id) (t2, e)
     | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno " ++ stringE ++ " (" ++ stringTipo2 ++ ")") expressao
                      return (TIgnore, expressao)
     where
-        expressao = Ret (Just e)
+        expressao = Ret e
         stringTipo1 = printTipo t1
         stringTipo2 = printTipo t2
         stringE = formatar e
@@ -134,6 +135,22 @@ verificarExpr tf tv (Neg e) = do (t, newE) <- verificarExpr tf tv e
                                     erroDeTipo "operador de negativo requer tipo numerico" e
                                     return (TIgnore, Neg newE)
 
+{-
+comparaTipos [] [] = pure ()
+comparaTipos xs []
+
+comparaTipos ((t1, _):xs) ((t2,_):ys)
+    | t1 == t2 = comparaTipos xs ys
+    | t1 /= t2 = 
+-}
+
+verificarExpr tf tv (Chamada id parametros) = do (tipo, nome, p) <- buscarFuncao tf id 
+                                           if tipo == TIgnore then do errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
+                                              return (TIgnore, Chamada id parametros)
+                                           else do
+                                              lista <- mapM (verificarExpr tf tv) parametros
+
+
 validaExprR tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
                                    newE2 <- verificarExpr tf tv e2
                                    arExprR token newE1 newE2
@@ -159,6 +176,32 @@ verificarExprL tf tv (Or e1 e2) = do newE1 <- verificarExprL tf tv e1
 verificarExprL tf tv (Not e) = do newE <- verificarExprL tf tv e
                                   return (Not newE)
 
+verificarComando tf tv tipof nomef (Imp expr) = do (_, newE) <- verificarExpr tf tv expr
+                                                   return (Imp newE)
+
+verificarComando tf tv tipof nomef (Leitura id) = do _ <- verificarExpr tf tv (IdVar id)
+                                                     return (Leitura id)
+
+verificarComando tf tv tipof nomef (While cond bloco) = do novaCond <- verificarExprL tf tv cond
+                                                           novoBloco <- mapM (verificarComando tf tv tipof nomef) bloco
+                                                           return (While novaCond novoBloco)
+
+verificarComando tf tv tipof nomef (If cond b1 b2) = do novaCond <- verificarExprL tf tv cond
+                                                        newB1 <- mapM (verificarComando tf tv tipof nomef) b1 
+                                                        newB2 <- mapM (verificarComando tf tv tipof nomef) b2
+                                                        return (If novaCond newB1 newB2)
+
+verificarComando tf tv tipof nomef (Atrib id expr) = do (tipoVar, _) <- verificarExpr tf tv (IdVar id)
+                                                        novaExpr <- verificarExpr tf tv expr
+                                                        (_, novoComando) <- arAtrib (tipoVar, id) novaExpr   
+                                                        return novoComando
+
+verificarComando tf tv tipof nomef (Ret Nothing) = do return arRet (tipof, nomef) (TVoid, Nothing) 
+
+verificarComando tf tv tipof nomef (Ret (Just expr)) = do (tipoExpr, e) <- validaExpr tf tv expr
+                                                          return arRet (tipof, nomef) (tipoExpr, Just e)
+
+verificarComando tf tv tipof nomef (Proc id expr) = do verificarExpr tf tv (Chamada id expr)
 
 -- teste simples para ilustrar o comportamento
 
