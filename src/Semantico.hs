@@ -244,13 +244,37 @@ verificarComando tf tv tipof nomef (Proc id expr) = do (_, exprAvaliada) <- veri
                                                            Chamada _ exprsAvaliadas -> return (Proc id exprsAvaliadas)
                                                            _                        -> return (Proc id expr)
 
+verificarFuncao tf (id, tv, bloco) = do 
+    let (tipoRetorno, nome, parametrosEsperados) = buscarFuncao tf id
+    if tipoRetorno == TIgnore then do
+        errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
+        return (id, tv, bloco)
+    else do
+        novoBloco <- mapM (verificarComando tf (parametrosEsperados ++ tv) tipoRetorno nome) bloco
+        return (id, tv, novoBloco)
+
+verificarPrograma (Prog tf codFuncoes varMain codigoPrincipal) = do 
+    novasFuncoes <- mapM (verificarFuncao tf) codFuncoes
+    novaMain <- mapM (verificarComando tf varMain TVoid "") codigoPrincipal
+    return (Prog tf novasFuncoes varMain novaMain)
+
+semantico prog = do 
+    let Result (status, mensagem, novoProg) = verificarPrograma prog
+    if status == True then do
+        putStrLn "Erro de compilacao\n"
+    else do
+        putStrLn "Pronto para gerar codigo intermediario\n"
+    putStrLn mensagem
+    putStrLn "\nNovo programa:\n\n"
+    putStrLn (printProg novoProg)
+
 -- teste simples para ilustrar o comportamento
 
 testSem = do
     file <- readFile "teste.j--"
-    let (Prog tf funcoes varMain m) = calc (L.alexScanTokens file)
-    putStrLn ("Programa\n\n" ++ printProg (Prog tf funcoes varMain m) ++ "\n")
-    let (Result (status, msg, b)) = mapM (verificarComando tf varMain TVoid "") m
-    putStrLn msg
-    putStrLn (printBloco b)
+    let prog = calc (L.alexScanTokens file)
+    putStrLn ("Programa\n\n" ++ printProg prog ++ "\n")
+    semantico prog
+    
+
     
