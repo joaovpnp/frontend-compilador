@@ -4,9 +4,9 @@ import AST
 import Token
 import Imprimivel
 import Parser
-import Imprimivel (erroDeTipo)
 import Distribution.TestSuite (Result(Error))
 import Text.XHtml (blockquote)
+import qualified Lex as L
 
 -- funções de verificação gerais
 
@@ -17,7 +17,7 @@ buscarVar ((id :#: (tipo,_)):xs) idVariavel
     | otherwise = buscarVar xs idVariavel
 
 buscarFuncao :: [Funcao] -> Id -> (Tipo, Id, [Var])
-buscarFuncao [] id = (TIgnore, id)
+buscarFuncao [] id = (TIgnore, id, [])
 buscarFuncao ((id :->: (pars, tipo)):xs) idFuncao
     | id == idFuncao = (tipo, id, pars)
     | otherwise = buscarFuncao xs idFuncao
@@ -85,8 +85,11 @@ arAtrib (t1, id) (t2, e)
 
 arRet (t1, id) (t2, Nothing)
     | t1 == TIgnore || t1 == TVoid = return (t1, Ret Nothing)
-    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno " ++ stringE ++ " (" ++ stringTipo2 ++ ")") expressao
+    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno (" ++ stringTipo2 ++ ")") (Ret Nothing)
                      return (TIgnore, Ret Nothing)
+    where
+        stringTipo1 = printTipo t1
+        stringTipo2 = printTipo t2
 arRet (t1, id) (t2, Just e)
     | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
     | t1 == t2 = do return (t1, Ret (Just e))
@@ -107,7 +110,9 @@ arChamada funcao chamada (t1, e1) (t2, e2)
     | t1 == t2 = do return (t1, e2)
     | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE2 ++ "\" como parametro da funcao " ++ printAssinaturaFuncao funcao) chamada
                            return (TDouble, IntDouble e2)
-    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre parametros da funcao \"" ++ printAssinaturaFuncao funcao ++ " e o parametro " ++ stringE ++ " (" ++ stringTipo2 ++ ")") chamada
+    | checkCast t2 t1 = do avisoDeCast ("cast em int para \"" ++ stringE2 ++ "\" como parametro da funcao " ++ printAssinaturaFuncao funcao) chamada
+                           return (TInt, DoubleInt e2)
+    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre parametros da funcao " ++ printAssinaturaFuncao funcao ++ " e o parametro " ++ stringE2 ++ " (" ++ stringTipo2 ++ ")") chamada
                      return (TIgnore, e2)
     where
         stringTipo2 = printTipo t2
@@ -120,54 +125,70 @@ Os verificadores precisam ser exaustivos. Lembre-se: a mônada passa implicitame
 
 -}
 
-verificarExpr tf tv (IdVar id) = do let (tipo, idvar) = buscarVar tv id
-                                    if tipo /= TIgnore then return (tipo, idvar) else do {
-                                                                                             errorMsg ("variavel \"" ++ id ++ "\" nao esta declarada");
-                                                                                             return (TIgnore, IdVar id);
-                                                                                         }
+validaExpr :: [Funcao] -> [Var] -> Token -> Expr -> Expr -> Imprimivel.Result (Tipo, Expr)
+validaExpr tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
+                                  newE2 <- verificarExpr tf tv e2
+                                  arExprA token newE1 newE2
+
+comparaTipos :: Imprimivel t => Funcao -> t -> [(Tipo, b)] -> [(Tipo, Expr)] -> Imprimivel.Result [Expr]
+comparaTipos f c [] [] = return []
+comparaTipos f c xs [] = do 
+    errorMsg ("Quantidade de parametros invalida para a funcao " ++ printAssinaturaFuncao f ++ " na expressao " ++ formatar c)
+    return []
+comparaTipos f c [] ys = do 
+    errorMsg ("Quantidade de parametros invalida para a funcao " ++ printAssinaturaFuncao f ++ " na expressao " ++ formatar c)
+    return []
+comparaTipos f c (x:xs) (y:ys) = do
+    (_, exprNova) <- arChamada f c x y
+    restoNovos <- comparaTipos f c xs ys
+    return (exprNova : restoNovos)
+
+verificarExpr :: [Funcao] -> [Var] -> Expr -> Imprimivel.Result (Tipo, Expr)
+verificarExpr tf tv (Chamada id parametros) = do 
+    let (tipoRetorno, nome, parametrosEsperados) = buscarFuncao tf id 
+    if tipoRetorno == TIgnore then do
+        errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
+        return (TIgnore, Chamada id parametros)
+    else do
+        pEsperadosAvaliados <- mapM (verificarExpr tf parametrosEsperados . (\(id :#: (_,_)) -> IdVar id)) parametrosEsperados
+        parametrosAvaliados <- mapM (verificarExpr tf tv) parametros
+        novosParametros <- comparaTipos (nome :->: (parametrosEsperados, tipoRetorno)) (Chamada id parametros) pEsperadosAvaliados parametrosAvaliados
+        return (tipoRetorno, Chamada id novosParametros)
+
+verificarExpr tf tv (IdVar id) = do 
+    let (tipo, idvar) = buscarVar tv id
+    if tipo /= TIgnore then return (tipo, idvar)
+    else do
+        errorMsg ("variavel \"" ++ id ++ "\" nao esta declarada");
+        return (TIgnore, IdVar id);
 
 verificarExpr tf tv (Const (CInt c)) = return (TInt, Const (CInt c))   
 
 verificarExpr tf tv (Const (CDouble c)) = return (TDouble, Const (CDouble c))
 
 verificarExpr tf tv (Lit s) = return (TString, Lit s)
-
-validaExpr tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
-                                  newE2 <- verificarExpr tf tv e2
-                                  arExprA token newE1 newE2
     
 verificarExpr tf tv (Add e1 e2) = validaExpr tf tv ADD e1 e2
 verificarExpr tf tv (Sub e1 e2) = validaExpr tf tv SUB e1 e2
 verificarExpr tf tv (Mul e1 e2) = validaExpr tf tv MUL e1 e2
 verificarExpr tf tv (Div e1 e2) = validaExpr tf tv DIV e1 e2
 
-verificarExpr tf tv (Neg e) = do (t, newE) <- verificarExpr tf tv e
-                                 if isNum t then
-                                    return (t, Neg newE)
-                                 else if t == TIgnore then 
-                                    return (TIgnore, Neg newE)
-                                 else do
-                                    erroDeTipo "operador de negativo requer tipo numerico" e
-                                    return (TIgnore, Neg newE)
+verificarExpr tf tv (Neg e) = do 
+    (t, newE) <- verificarExpr tf tv e
+    if isNum t then
+        return (t, Neg newE)
+    else if t == TIgnore then 
+        return (TIgnore, Neg newE)
+    else do
+        erroDeTipo "operador de negativo requer tipo numerico" e
+        return (TIgnore, Neg newE)
 
-comparaTipos f c [] [] = return []
-comparaTipos f c xs [] = do errorMsg (Quantidade de parametros invalida para a funcao ++ printAssinaturaFuncao f ++ na expressao ++ formatar c
-comparaTipos f c (x:xs) (y:ys) = return (arChamada f c x y : comparaTipos f c xs ys)
-
-verificarExpr tf tv (Chamada id parametros) = do (tipoRetorno, nome, parametrosEsperados) <- buscarFuncao tf id 
-                                           if tipoRetorno == TIgnore then do 
-                                              errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
-                                              return (TIgnore, Chamada id parametros)
-                                           else do
-                                              parametrosAvaliados <- mapM (verificarExpr tf tv) parametros
-                                              novosParametros <- comparaTipos (nome :->: (parametrosEsperados, tipo)) (Chamada id parametros) parametrosEsperados parametrosAvaliados
-                                              return (tipoRetorno, Chamada id novosParametros)
-
-
+validaExprR :: [Funcao] -> [Var] -> Token -> Expr -> Expr -> Imprimivel.Result (Tipo, ExprR)
 validaExprR tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
                                    newE2 <- verificarExpr tf tv e2
                                    arExprR token newE1 newE2
 
+verificarExprR :: [Funcao] -> [Var] -> ExprR -> Imprimivel.Result (Tipo, ExprR)
 verificarExprR tf tv (Req e1 e2) = validaExprR tf tv TEQ e1 e2
 verificarExprR tf tv (Rdif e1 e2) = validaExprR tf tv DIFF e1 e2
 verificarExprR tf tv (Rlt e1 e2) = validaExprR tf tv TLT e1 e2
@@ -175,6 +196,7 @@ verificarExprR tf tv (Rgt e1 e2) = validaExprR tf tv TGT e1 e2
 verificarExprR tf tv (Rle e1 e2) = validaExprR tf tv LE e1 e2
 verificarExprR tf tv (Rge e1 e2) = validaExprR tf tv GE e1 e2
 
+verificarExprL :: [Funcao] -> [Var] -> ExprL -> Imprimivel.Result ExprL
 verificarExprL tf tv (Rel exprR) = do (tipo, novaExprR) <- verificarExprR tf tv exprR
                                       return (Rel novaExprR)
 
@@ -189,6 +211,7 @@ verificarExprL tf tv (Or e1 e2) = do newE1 <- verificarExprL tf tv e1
 verificarExprL tf tv (Not e) = do newE <- verificarExprL tf tv e
                                   return (Not newE)
 
+verificarComando :: [Funcao] -> [Var] -> Tipo -> [Char] -> Comando -> Imprimivel.Result Comando
 verificarComando tf tv tipof nomef (Imp expr) = do (_, newE) <- verificarExpr tf tv expr
                                                    return (Imp newE)
 
@@ -209,18 +232,25 @@ verificarComando tf tv tipof nomef (Atrib id expr) = do (tipoVar, _) <- verifica
                                                         (_, novoComando) <- arAtrib (tipoVar, id) novaExpr   
                                                         return novoComando
 
-verificarComando tf tv tipof nomef (Ret Nothing) = do return arRet (tipof, nomef) (TVoid, Nothing) 
+verificarComando tf tv tipof nomef (Ret Nothing) = do (t, e) <- arRet (tipof, nomef) (TVoid, Nothing) 
+                                                      return e
 
-verificarComando tf tv tipof nomef (Ret (Just expr)) = do (tipoExpr, e) <- validaExpr tf tv expr
-                                                          return arRet (tipof, nomef) (tipoExpr, Just e)
+verificarComando tf tv tipof nomef (Ret (Just expr)) = do (tipoExpr, e) <- verificarExpr tf tv expr
+                                                          (t, e2) <- arRet (tipof, nomef) (tipoExpr, Just e)
+                                                          return e2
 
-verificarComando tf tv tipof nomef (Proc id expr) = do verificarExpr tf tv (Chamada id expr)
+verificarComando tf tv tipof nomef (Proc id expr) = do (_, exprAvaliada) <- verificarExpr tf tv (Chamada id expr)
+                                                       case exprAvaliada of
+                                                           Chamada _ exprsAvaliadas -> return (Proc id exprsAvaliadas)
+                                                           _                        -> return (Proc id expr)
 
 -- teste simples para ilustrar o comportamento
 
-testSem = do let a = Add (IdVar "a") (IdVar "b")
-             let tf = []
-             let tv = ["a" :#: (TInt, 0), "b" :#: (TDouble, 0)]
-             let Result (s, msg, ast) = verificarExpr tf tv a
-             putStr (msg)
-             putStrLn (printExpr (snd ast) ++ " = " ++ show (snd ast))
+testSem = do
+    file <- readFile "teste.j--"
+    let (Prog tf funcoes varMain m) = calc (L.alexScanTokens file)
+    putStrLn ("Programa\n\n" ++ printProg (Prog tf funcoes varMain m) ++ "\n")
+    let (Result (status, msg, b)) = mapM (verificarComando tf varMain TVoid "") m
+    putStrLn msg
+    putStrLn (printBloco b)
+    
