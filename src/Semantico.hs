@@ -22,224 +22,205 @@ buscarFuncao ((id :->: (pars, tipo)):xs) idFuncao
     | id == idFuncao = (tipo, id, pars)
     | otherwise = buscarFuncao xs idFuncao
 
+isNum :: Tipo -> Bool
 isNum t = t == TInt || t == TDouble
+
+checkCast :: Tipo -> Tipo -> Bool
 checkCast t1 t2 = t1 == TDouble && t2 == TInt
 
-arExprA token (t1, e1) (t2, e2)
-    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
-    | not ((isNum t1) || (isNum t2)) = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" e tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao aritmetica") expressao
-                                          return (TIgnore, expressao)
-    | not (isNum t1) = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" para operacao aritmetica") expressao
-                          return (TIgnore, expressao)
-    | not (isNum t2) = do erroDeTipo ("tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao aritmetica") expressao
-                          return (TIgnore, expressao)
-    | t1 == t2 = do return (t1, expressao)
-    | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE2 ++ "\"") expressao
-                           return (t1, constrExprA token e1 (IntDouble e2))
-    | checkCast t2 t1 = do avisoDeCast ("cast em double para \"" ++ stringE1 ++ "\"") expressao
-                           return (t2, constrExprA token (IntDouble e1) e2)
+arExprA :: Imprimivel p => Id -> p -> Token -> (Tipo, Expr) -> (Tipo, Expr) -> Imprimivel.Result (Tipo, Expr)
+arExprA nomeF cmd token (t1, e1) (t2, e2)
+    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expr)
+    | isNum t1 && t1 == t2           = return (t1, expr)
+    | checkCast t1 t2                = avisoDeCast (msgCast e2) nomeF cmd expr >> return (t1, constrExprA token e1 (IntDouble e2))
+    | checkCast t2 t1                = avisoDeCast (msgCast e1) nomeF cmd expr >> return (t2, constrExprA token (IntDouble e1) e2)
+    | otherwise                      = erroDeTipo msgErro nomeF cmd expr >> return (TIgnore, expr)
     where
-        expressao = constrExprA token e1 e2
-        stringTipo1 = printTipo t1
-        stringTipo2 = printTipo t2
-        stringE1 = formatar e1
-        stringE2 = formatar e2
+        expr     = constrExprA token e1 e2
+        msgCast e = "cast para double em \"" ++ formatar e ++ "\""
+        msgErro
+            | not (isNum t1) && not (isNum t2) = "tipo " ++ printTipo t1 ++ " em \"" ++ formatar e1 ++ "\" e tipo " ++ printTipo t2 ++ " em \"" ++ formatar e2 ++ "\" para operacao aritmetica"
+            | not (isNum t1)                   = "tipo " ++ printTipo t1 ++ " em \"" ++ formatar e1 ++ "\" para operacao aritmetica"
+            | otherwise                        = "tipo " ++ printTipo t2 ++ " em \"" ++ formatar e2 ++ "\" para operacao aritmetica"
 
-arExprR token (t1, e1) (t2, e2)
-    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
-    | t1 == TString && t2 == TString = do return (TString, expressao)
-    | t1 == TString || t2 == TString = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" e tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao relacional") expressao
-                                          return (TIgnore, expressao)
-    | not ((isNum t1) || (isNum t2)) = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" e tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao relacional") expressao
-                                          return (TIgnore, expressao)
-    | not (isNum t1) = do erroDeTipo ("tipo " ++ stringTipo1 ++ " em \"" ++ stringE1 ++ "\" para operacao relacional") expressao
-                          return (TIgnore, expressao)
-    | not (isNum t2) = do erroDeTipo ("tipo " ++ stringTipo2 ++ " em \"" ++ stringE2 ++ "\" para operacao relacional") expressao
-                          return (TIgnore, expressao)
-    | t1 == t2 = do return (t1, expressao)
-    | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE2 ++ "\"") expressao
-                           return (t1, constrExprR token e1 (IntDouble e2))
-    | checkCast t2 t1 = do avisoDeCast ("cast em double para \"" ++ stringE1 ++ "\"") expressao
-                           return (t2, constrExprR token (IntDouble e1) e2)
+arExprR nomeF cmd token (t1, e1) (t2, e2)
+    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expr)
+    | t1 == TString && t2 == TString = return (TString, expr)
+    | isNum t1 && t1 == t2           = return (t1, expr)
+    | checkCast t1 t2                = avisoDeCast (msgCast e2) nomeF cmd expr >> return (t1, constrExprR token e1 (IntDouble e2))
+    | checkCast t2 t1                = avisoDeCast (msgCast e1) nomeF cmd expr >> return (t2, constrExprR token (IntDouble e1) e2)
+    | otherwise                      = erroDeTipo msgErro nomeF cmd expr >> return (TIgnore, expr)
     where
-        expressao = constrExprR token e1 e2
-        stringTipo1 = printTipo t1
-        stringTipo2 = printTipo t2
-        stringE1 = formatar e1
-        stringE2 = formatar e2    
+        expr     = constrExprR token e1 e2
+        msgCast e = "cast para double em \"" ++ formatar e ++ "\""
+        msgErro
+            | t1 == TString || t2 == TString   = "tipo " ++ printTipo t1 ++ " em \"" ++ formatar e1 ++ "\" e tipo " ++ printTipo t2 ++ " em \"" ++ formatar e2 ++ "\" para operacao relacional"
+            | not (isNum t1) && not (isNum t2) = "tipo " ++ printTipo t1 ++ " em \"" ++ formatar e1 ++ "\" e tipo " ++ printTipo t2 ++ " em \"" ++ formatar e2 ++ "\" para operacao relacional"
+            | not (isNum t1)                   = "tipo " ++ printTipo t1 ++ " em \"" ++ formatar e1 ++ "\" para operacao relacional"
+            | otherwise                        = "tipo " ++ printTipo t2 ++ " em \"" ++ formatar e2 ++ "\" para operacao relacional"
 
-arAtrib (t1, id) (t2, e)
-    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
-    | t1 == t2 = do return (t1, expressao)
-    | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE ++ "\" em uma atribuicao") expressao
-                           return (TIgnore, Atrib id (IntDouble e))
-    | checkCast t2 t1 = do avisoDeCast ("cast em int para \"" ++ stringE ++ "\" em uma atribuicao") expressao
-                           return (TIgnore, Atrib id (DoubleInt e))
-    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre " ++ id ++ "(" ++ stringTipo1 ++ ") e " ++ stringE ++ "(" ++ stringTipo2 ++ ")") expressao
-                     return (TIgnore, expressao)
+arAtrib nomeF cmd (t1, id) (t2, e)
+    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expr)
+    | t1 == t2                       = return (t1, expr)
+    | checkCast t1 t2                = avisoDeCast msgCastD nomeF cmd expr >> return (TIgnore, Atrib id (IntDouble e))
+    | checkCast t2 t1                = avisoDeCast msgCastI nomeF cmd expr >> return (TIgnore, Atrib id (DoubleInt e))
+    | otherwise                      = erroDeTipo msgErro nomeF cmd expr >> return (TIgnore, expr)
     where
-        expressao = Atrib id e
-        stringTipo1 = printTipo t1
-        stringTipo2 = printTipo t2
-        stringE = formatar e
+        expr     = Atrib id e
+        msgCastD = "cast para double em \"" ++ formatar e ++ "\""
+        msgCastI = "cast para int em \"" ++ formatar e ++ "\""
+        msgErro  = "incompatibilidade de tipos entre a funcao " ++ id ++ " (do tipo " ++ printTipo t1 ++ ") e " ++ formatar e ++ "(do tipo " ++ printTipo t2 ++ ")"
 
-arRet (t1, id) (t2, Nothing)
+arRet nomeF cmd (t1, id) (t2, Nothing)
     | t1 == TIgnore || t1 == TVoid = return (t1, Ret Nothing)
-    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno (" ++ stringTipo2 ++ ")") (Ret Nothing)
-                     return (TIgnore, Ret Nothing)
+    | otherwise                    = erroDeTipo msgErro nomeF cmd (Ret Nothing) >> return (TIgnore, Ret Nothing)
     where
-        stringTipo1 = printTipo t1
-        stringTipo2 = printTipo t2
-arRet (t1, id) (t2, Just e)
-    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expressao)
-    | t1 == t2 = do return (t1, Ret (Just e))
-    | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE ++ "\" no retorno da funcao " ++ id) expressao
-                           return (TIgnore, Ret (Just (IntDouble e)))
-    | checkCast t2 t1 = do avisoDeCast ("cast em int para \"" ++ stringE ++ "\" no retorno da funcao " ++ id) expressao
-                           return (TIgnore, Ret (Just (DoubleInt e)))
-    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre a funcao \"" ++ id ++ "\" (" ++ stringTipo1 ++ ") e o retorno " ++ stringE ++ " (" ++ stringTipo2 ++ ")") expressao
-                     return (TIgnore, expressao)
-    where
-        expressao = Ret (Just e)
-        stringTipo1 = printTipo t1
-        stringTipo2 = printTipo t2
-        stringE = formatar e
+        msgErro  = "incompatibilidade de tipos entre a funcao " ++ id ++ " (do tipo " ++ printTipo t1 ++ ") e o retorno (do tipo " ++ printTipo t2 ++ ")"
 
-arChamada funcao chamada (t1, e1) (t2, e2)
-    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, e2)
-    | t1 == t2 = do return (t1, e2)
-    | checkCast t1 t2 = do avisoDeCast ("cast em double para \"" ++ stringE2 ++ "\" como parametro da funcao " ++ printAssinaturaFuncao funcao) chamada
-                           return (TDouble, IntDouble e2)
-    | checkCast t2 t1 = do avisoDeCast ("cast em int para \"" ++ stringE2 ++ "\" como parametro da funcao " ++ printAssinaturaFuncao funcao) chamada
-                           return (TInt, DoubleInt e2)
-    | otherwise = do erroDeTipo ("incompatibilidade de tipos entre parametros da funcao " ++ printAssinaturaFuncao funcao ++ " e o parametro " ++ stringE2 ++ " (" ++ stringTipo2 ++ ")") chamada
-                     return (TIgnore, e2)
+arRet nomeF cmd (t1, id) (t2, Just e)
+    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, expr)
+    | t1 == t2                       = return (t1, expr)
+    | checkCast t1 t2                = avisoDeCast msgCastD nomeF cmd expr >> return (TIgnore, Ret (Just (IntDouble e)))
+    | checkCast t2 t1                = avisoDeCast msgCastI nomeF cmd expr >> return (TIgnore, Ret (Just (DoubleInt e)))
+    | otherwise                      = erroDeTipo msgErro nomeF cmd expr >> return (TIgnore, expr)
     where
-        stringTipo2 = printTipo t2
-        stringE2 = formatar e2
+        expr     = Ret (Just e)
+        msgCastD = "cast para double em \"" ++ formatar e ++ "\" no retorno da funcao " ++ id
+        msgCastI = "cast para int em \"" ++ formatar e ++ "\" no retorno da funcao " ++ id
+        msgErro  = "incompatibilidade de tipos entre a funcao " ++ id ++ " (do tipo " ++ printTipo t1 ++ ") e o retorno (do tipo " ++ printTipo t2 ++ ")"
+
+arChamada nomeF cmd funcao chamada (t1, e1) (t2, e2)
+    | t1 == TIgnore || t2 == TIgnore = return (TIgnore, e2)
+    | t1 == t2                       = return (t1, e2)
+    | checkCast t1 t2                = avisoDeCast msgCastD nomeF cmd chamada >> return (TDouble, IntDouble e2)
+    | checkCast t2 t1                = avisoDeCast msgCastI nomeF cmd chamada >> return (TInt, DoubleInt e2)
+    | otherwise                      = erroDeTipo msgErro nomeF cmd chamada >> return (TIgnore, e2)
+    where
+        msgCastD = "cast para double em \"" ++ formatar e2 ++ "\" pois eh um parametro da funcao " ++ printAssinaturaFuncao funcao
+        msgCastI = "cast para int em \"" ++ formatar e2 ++ "\" pois eh um parametro da funcao " ++ printAssinaturaFuncao funcao
+        msgErro  = "incompatibilidade de tipos entre parametros da funcao " ++ printAssinaturaFuncao funcao ++ " e o parametro " ++ formatar e2 ++ " (do tipo " ++ printTipo t2 ++ ")"
 
 -- verificadores de tipo
-{-
 
-Os verificadores precisam ser exaustivos. Lembre-se: a mônada passa implicitamente as mensagens de erro e o estado do código.
+validaExpr :: [Funcao] -> [Var] -> Id -> Comando -> Token -> Expr -> Expr -> Imprimivel.Result (Tipo, Expr)
+validaExpr tf tv idFuncao cmd token e1 e2 = do
+    newE1 <- verificarExpr tf tv idFuncao cmd e1
+    newE2 <- verificarExpr tf tv idFuncao cmd e2
+    arExprA idFuncao cmd token newE1 newE2
 
--}
 
-validaExpr :: [Funcao] -> [Var] -> Token -> Expr -> Expr -> Imprimivel.Result (Tipo, Expr)
-validaExpr tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
-                                  newE2 <- verificarExpr tf tv e2
-                                  arExprA token newE1 newE2
+comparaTipos idFuncao cmd f c [] [] = return []
 
-comparaTipos :: Imprimivel t => Funcao -> t -> [(Tipo, b)] -> [(Tipo, Expr)] -> Imprimivel.Result [Expr]
-comparaTipos f c [] [] = return []
-comparaTipos f c xs [] = do 
-    errorMsg ("Quantidade de parametros invalida para a funcao " ++ printAssinaturaFuncao f ++ " na expressao " ++ formatar c)
+comparaTipos idFuncao cmd f c xs [] = do 
+    errorMsg ("na funcao " ++ idFuncao ++ " \n\t-> no comando: " ++ formatar cmd ++ "\n\t\t -> quantidade invalida de parametros para a funcao " ++ formatar f)
     return []
-comparaTipos f c [] ys = do 
-    errorMsg ("Quantidade de parametros invalida para a funcao " ++ printAssinaturaFuncao f ++ " na expressao " ++ formatar c)
+
+comparaTipos idFuncao cmd f c [] ys = do 
+    errorMsg ("na funcao " ++ idFuncao ++ " \n\t-> no comando: " ++ formatar cmd ++ "\n\t\t -> quantidade invalida de parametros para a funcao " ++ formatar f)
     return []
-comparaTipos f c (x:xs) (y:ys) = do
-    (_, exprNova) <- arChamada f c x y
-    restoNovos <- comparaTipos f c xs ys
+
+comparaTipos idFuncao cmd f c (x:xs) (y:ys) = do
+    restoNovos <- comparaTipos idFuncao cmd f c xs ys
+    (_, exprNova) <- arChamada idFuncao cmd f c x y
     return (exprNova : restoNovos)
 
-verificarExpr :: [Funcao] -> [Var] -> Expr -> Imprimivel.Result (Tipo, Expr)
-verificarExpr tf tv (Chamada id parametros) = do 
+verificarExpr :: [Funcao] -> [Var] -> Id -> Comando -> Expr -> Imprimivel.Result (Tipo, Expr)
+verificarExpr tf tv idFuncao cmd (Chamada id parametros) = do 
     let (tipoRetorno, nome, parametrosEsperados) = buscarFuncao tf id 
     if tipoRetorno == TIgnore then do
         errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
         return (TIgnore, Chamada id parametros)
     else do
-        pEsperadosAvaliados <- mapM (verificarExpr tf parametrosEsperados . (\(id :#: (_,_)) -> IdVar id)) parametrosEsperados
-        parametrosAvaliados <- mapM (verificarExpr tf tv) parametros
-        novosParametros <- comparaTipos (nome :->: (parametrosEsperados, tipoRetorno)) (Chamada id parametros) pEsperadosAvaliados parametrosAvaliados
+        pEsperadosAvaliados <- mapM (verificarExpr tf parametrosEsperados idFuncao cmd . (\(id :#: (_,_)) -> IdVar id)) parametrosEsperados
+        parametrosAvaliados <- mapM (verificarExpr tf tv idFuncao cmd) parametros
+        novosParametros <- comparaTipos idFuncao cmd (nome :->: (parametrosEsperados, tipoRetorno)) (Chamada id parametros) pEsperadosAvaliados parametrosAvaliados
         return (tipoRetorno, Chamada id novosParametros)
 
-verificarExpr tf tv (IdVar id) = do 
+verificarExpr tf tv idFuncao cmd (IdVar id) = do 
     let (tipo, idvar) = buscarVar tv id
     if tipo /= TIgnore then return (tipo, idvar)
     else do
         errorMsg ("variavel \"" ++ id ++ "\" nao esta declarada");
         return (TIgnore, IdVar id);
 
-verificarExpr tf tv (Const (CInt c)) = return (TInt, Const (CInt c))   
+verificarExpr tf tv idFuncao cmd (Const (CInt c)) = return (TInt, Const (CInt c))   
 
-verificarExpr tf tv (Const (CDouble c)) = return (TDouble, Const (CDouble c))
+verificarExpr tf tv idFuncao cmd (Const (CDouble c)) = return (TDouble, Const (CDouble c))
 
-verificarExpr tf tv (Lit s) = return (TString, Lit s)
+verificarExpr tf tv idFuncao cmd (Lit s) = return (TString, Lit s)
     
-verificarExpr tf tv (Add e1 e2) = validaExpr tf tv ADD e1 e2
-verificarExpr tf tv (Sub e1 e2) = validaExpr tf tv SUB e1 e2
-verificarExpr tf tv (Mul e1 e2) = validaExpr tf tv MUL e1 e2
-verificarExpr tf tv (Div e1 e2) = validaExpr tf tv DIV e1 e2
+verificarExpr tf tv idFuncao cmd (Add e1 e2) = validaExpr tf tv idFuncao cmd ADD e1 e2
+verificarExpr tf tv idFuncao cmd (Sub e1 e2) = validaExpr tf tv idFuncao cmd SUB e1 e2
+verificarExpr tf tv idFuncao cmd (Mul e1 e2) = validaExpr tf tv idFuncao cmd MUL e1 e2
+verificarExpr tf tv idFuncao cmd (Div e1 e2) = validaExpr tf tv idFuncao cmd DIV e1 e2
 
-verificarExpr tf tv (Neg e) = do 
-    (t, newE) <- verificarExpr tf tv e
+verificarExpr tf tv idFuncao cmd (Neg e) = do 
+    (t, newE) <- verificarExpr tf tv idFuncao cmd e
     if isNum t then
         return (t, Neg newE)
     else if t == TIgnore then 
         return (TIgnore, Neg newE)
     else do
-        erroDeTipo "operador de negativo requer tipo numerico" e
+        erroDeTipo ("incompatibilidade de tipo (" ++ printTipo t ++ ")") idFuncao cmd (Neg e)
         return (TIgnore, Neg newE)
 
-validaExprR :: [Funcao] -> [Var] -> Token -> Expr -> Expr -> Imprimivel.Result (Tipo, ExprR)
-validaExprR tf tv token e1 e2 = do newE1 <- verificarExpr tf tv e1
-                                   newE2 <- verificarExpr tf tv e2
-                                   arExprR token newE1 newE2
+validaExprR :: [Funcao] -> [Var] -> Id -> Comando -> Token -> Expr -> Expr -> Imprimivel.Result (Tipo, ExprR)
+validaExprR tf tv idFuncao cmd token e1 e2 = do newE1 <- verificarExpr tf tv idFuncao cmd e1
+                                                newE2 <- verificarExpr tf tv idFuncao cmd e2
+                                                arExprR idFuncao cmd token newE1 newE2
 
-verificarExprR :: [Funcao] -> [Var] -> ExprR -> Imprimivel.Result (Tipo, ExprR)
-verificarExprR tf tv (Req e1 e2) = validaExprR tf tv TEQ e1 e2
-verificarExprR tf tv (Rdif e1 e2) = validaExprR tf tv DIFF e1 e2
-verificarExprR tf tv (Rlt e1 e2) = validaExprR tf tv TLT e1 e2
-verificarExprR tf tv (Rgt e1 e2) = validaExprR tf tv TGT e1 e2
-verificarExprR tf tv (Rle e1 e2) = validaExprR tf tv LE e1 e2
-verificarExprR tf tv (Rge e1 e2) = validaExprR tf tv GE e1 e2
+verificarExprR :: [Funcao] -> [Var] -> Id -> Comando -> ExprR -> Imprimivel.Result (Tipo, ExprR)
+verificarExprR tf tv idFuncao cmd (Req e1 e2) = validaExprR tf tv idFuncao cmd TEQ e1 e2
+verificarExprR tf tv idFuncao cmd (Rdif e1 e2) = validaExprR tf tv idFuncao cmd DIFF e1 e2
+verificarExprR tf tv idFuncao cmd (Rlt e1 e2) = validaExprR tf tv idFuncao cmd TLT e1 e2
+verificarExprR tf tv idFuncao cmd (Rgt e1 e2) = validaExprR tf tv idFuncao cmd TGT e1 e2
+verificarExprR tf tv idFuncao cmd (Rle e1 e2) = validaExprR tf tv idFuncao cmd LE e1 e2
+verificarExprR tf tv idFuncao cmd (Rge e1 e2) = validaExprR tf tv idFuncao cmd GE e1 e2
 
-verificarExprL :: [Funcao] -> [Var] -> ExprL -> Imprimivel.Result ExprL
-verificarExprL tf tv (Rel exprR) = do (tipo, novaExprR) <- verificarExprR tf tv exprR
-                                      return (Rel novaExprR)
+verificarExprL :: [Funcao] -> [Var] -> Id -> Comando -> ExprL -> Imprimivel.Result ExprL
+verificarExprL tf tv idFuncao cmd (Rel exprR) = do (tipo, novaExprR) <- verificarExprR tf tv idFuncao cmd exprR
+                                                   return (Rel novaExprR)
 
-verificarExprL tf tv (And e1 e2) = do newE1 <- verificarExprL tf tv e1
-                                      newE2 <- verificarExprL tf tv e2
-                                      return (And newE1 newE2)
+verificarExprL tf tv idFuncao cmd (And e1 e2) = do newE1 <- verificarExprL tf tv idFuncao cmd e1
+                                                   newE2 <- verificarExprL tf tv idFuncao cmd e2
+                                                   return (And newE1 newE2)
                                    
-verificarExprL tf tv (Or e1 e2) = do newE1 <- verificarExprL tf tv e1
-                                     newE2 <- verificarExprL tf tv e2
-                                     return (Or newE1 newE2)
+verificarExprL tf tv idFuncao cmd (Or e1 e2) = do newE1 <- verificarExprL tf tv idFuncao cmd e1
+                                                  newE2 <- verificarExprL tf tv idFuncao cmd e2
+                                                  return (Or newE1 newE2)
 
-verificarExprL tf tv (Not e) = do newE <- verificarExprL tf tv e
-                                  return (Not newE)
+verificarExprL tf tv idFuncao cmd (Not e) = do newE <- verificarExprL tf tv idFuncao cmd e
+                                               return (Not newE)
 
 verificarComando :: [Funcao] -> [Var] -> Tipo -> [Char] -> Comando -> Imprimivel.Result Comando
-verificarComando tf tv tipof nomef (Imp expr) = do (_, newE) <- verificarExpr tf tv expr
+verificarComando tf tv tipof nomef (Imp expr) = do (_, newE) <- verificarExpr tf tv nomef (Imp expr) expr
                                                    return (Imp newE)
 
-verificarComando tf tv tipof nomef (Leitura id) = do _ <- verificarExpr tf tv (IdVar id)
+verificarComando tf tv tipof nomef (Leitura id) = do _ <- verificarExpr tf tv nomef (Leitura id) (IdVar id)
                                                      return (Leitura id)
 
-verificarComando tf tv tipof nomef (While cond bloco) = do novaCond <- verificarExprL tf tv cond
+verificarComando tf tv tipof nomef (While cond bloco) = do novaCond <- verificarExprL tf tv nomef (While cond []) cond
                                                            novoBloco <- mapM (verificarComando tf tv tipof nomef) bloco
                                                            return (While novaCond novoBloco)
 
-verificarComando tf tv tipof nomef (If cond b1 b2) = do novaCond <- verificarExprL tf tv cond
+verificarComando tf tv tipof nomef (If cond b1 b2) = do novaCond <- verificarExprL tf tv nomef (If cond [] []) cond
                                                         newB1 <- mapM (verificarComando tf tv tipof nomef) b1 
                                                         newB2 <- mapM (verificarComando tf tv tipof nomef) b2
                                                         return (If novaCond newB1 newB2)
 
-verificarComando tf tv tipof nomef (Atrib id expr) = do (tipoVar, _) <- verificarExpr tf tv (IdVar id)
-                                                        novaExpr <- verificarExpr tf tv expr
-                                                        (_, novoComando) <- arAtrib (tipoVar, id) novaExpr   
+verificarComando tf tv tipof nomef (Atrib id expr) = do (tipoVar, _) <- verificarExpr tf tv nomef (Atrib id expr) (IdVar id)
+                                                        novaExpr <- verificarExpr tf tv nomef (Atrib id expr) expr
+                                                        (_, novoComando) <- arAtrib nomef (Atrib id expr) (tipoVar, id) novaExpr   
                                                         return novoComando
 
-verificarComando tf tv tipof nomef (Ret Nothing) = do (t, e) <- arRet (tipof, nomef) (TVoid, Nothing) 
+verificarComando tf tv tipof nomef (Ret Nothing) = do (t, e) <- arRet nomef (Ret Nothing) (tipof, nomef) (TVoid, Nothing) 
                                                       return e
 
-verificarComando tf tv tipof nomef (Ret (Just expr)) = do (tipoExpr, e) <- verificarExpr tf tv expr
-                                                          (t, e2) <- arRet (tipof, nomef) (tipoExpr, Just e)
+verificarComando tf tv tipof nomef (Ret (Just expr)) = do (tipoExpr, e) <- verificarExpr tf tv nomef (Ret (Just expr)) expr
+                                                          (t, e2) <- arRet nomef (Ret (Just expr)) (tipof, nomef) (tipoExpr, Just e)
                                                           return e2
 
-verificarComando tf tv tipof nomef (Proc id expr) = do (_, exprAvaliada) <- verificarExpr tf tv (Chamada id expr)
+verificarComando tf tv tipof nomef (Proc id expr) = do (_, exprAvaliada) <- verificarExpr tf tv nomef (Proc id expr) (Chamada id expr)
                                                        case exprAvaliada of
                                                            Chamada _ exprsAvaliadas -> return (Proc id exprsAvaliadas)
                                                            _                        -> return (Proc id expr)
@@ -253,11 +234,13 @@ verificarFuncao tf (id, tv, bloco) = do
         novoBloco <- mapM (verificarComando tf (parametrosEsperados ++ tv) tipoRetorno nome) bloco
         return (id, tv, novoBloco)
 
+verificarPrograma :: Programa -> Imprimivel.Result Programa
 verificarPrograma (Prog tf codFuncoes varMain codigoPrincipal) = do 
     novasFuncoes <- mapM (verificarFuncao tf) codFuncoes
-    novaMain <- mapM (verificarComando tf varMain TVoid "") codigoPrincipal
+    novaMain <- mapM (verificarComando tf varMain TVoid "principal") codigoPrincipal
     return (Prog tf novasFuncoes varMain novaMain)
 
+semantico :: Programa -> IO ()
 semantico prog = do 
     let Result (status, mensagem, novoProg) = verificarPrograma prog
     if status == True then do

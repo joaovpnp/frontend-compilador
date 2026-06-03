@@ -98,7 +98,7 @@ printBloco ((While el b):cs) = printComando (While el b) ++ "\n" ++ printBloco c
 printBloco (c:cs) = printComando c ++ ";\n" ++ printBloco cs
 
 printVar :: Var -> String
-printVar (nome :#: (tipo, frame)) = printTipo tipo ++ " " ++ nome ++ " (frame " ++ show frame ++ ")"
+printVar (nome :#: (tipo, frame)) = printTipo tipo ++ " " ++ nome
 
 printVars :: [Var] -> String
 printVars [] = ""

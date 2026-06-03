@@ -21,9 +21,10 @@ class Imprimivel a where
     formatar :: a -> String
 
 -- Função genérica para emitir erro com base na AST
-erroDeTipo :: (Imprimivel a) => String -> a -> Result ()
-erroDeTipo mensagem elemento = errorMsg (mensagem ++ " na expressao: " ++ formatar elemento)
+erroDeTipo :: (Imprimivel a1, Imprimivel a2) => String -> String -> a1 -> a2 -> Result ()
+erroDeTipo mensagem nomeFuncao cmd elemento = errorMsg ("na funcao " ++ nomeFuncao ++ "\n\t-> no comando: " ++ formatar cmd ++ "\n\t\t-> " ++ mensagem ++ " na expressao: " ++ formatar elemento)
 
 -- Função genérica para emitir aviso
-avisoDeCast :: (Imprimivel a) => String -> a -> Result ()
-avisoDeCast mensagem elemento = warningMsg (mensagem ++ " na expressao: " ++ formatar elemento)
+avisoDeCast :: (Imprimivel a1, Imprimivel a2) => String -> String -> a1 -> a2 -> Result ()
+avisoDeCast mensagem nomeFuncao cmd elemento = warningMsg ("na funcao " ++ nomeFuncao ++ "\n\t-> no comando: " ++ formatar cmd ++ "\n\t\t-> " ++ mensagem ++ " na expressao: " ++ formatar elemento)
+
