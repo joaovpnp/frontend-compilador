@@ -13,9 +13,9 @@ instance Monad Result where
     -- return a = Result (False, "", a)
     Result (b, s, a) >>= f = let Result (b', s', a') = f a in Result (b || b', s++s', a')
   
-errorMsg s = Result (True, "ERRO: "++s++"\n", ())
+errorMsg s = Result (True, "ERRO: "++s++"\n\n", ())
 
-warningMsg s = Result (False, "ADVERTENCIA: "++s++"\n", ())
+warningMsg s = Result (False, "ADVERTENCIA: "++s++"\n\n", ())
 
 class Imprimivel a where
     formatar :: a -> String

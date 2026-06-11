@@ -7,8 +7,27 @@ import Parser
 import Distribution.TestSuite (Result(Error))
 import Text.XHtml (blockquote)
 import qualified Lex as L
+import Data.Char (digitToInt)
 
 -- funções de verificação gerais
+
+duplicados :: Eq a => [a] -> [a]
+duplicados [] = []
+duplicados (x:xs)
+    | x `elem` xs = x : duplicados (filter (/= x) xs)
+    | otherwise   = duplicados xs
+
+verificarVarsDuplicadas :: String -> [Var] -> Imprimivel.Result ()
+verificarVarsDuplicadas escopo vars = do
+    let ids = map (\(idV :#: _) -> idV) vars
+    let dups = duplicados ids
+    mapM_ (\idV -> errorMsg ("variavel \"" ++ idV ++ "\" declarada multiplas vezes na funcao " ++ escopo)) dups
+
+verificarFuncsDuplicadas :: [Funcao] -> Imprimivel.Result ()
+verificarFuncsDuplicadas funcs = do
+    let ids = map (\(idF :->: _) -> idF) funcs
+    let dups = duplicados ids
+    mapM_ (\idF -> errorMsg ("funcao \"" ++ idF ++ "\" declarada multiplas vezes")) dups
 
 buscarVar :: [Var] -> Id -> (Tipo, Expr)
 buscarVar [] id = (TIgnore, IdVar id)
@@ -227,6 +246,7 @@ verificarComando tf tv tipof nomef (Proc id expr) = do (_, exprAvaliada) <- veri
 
 verificarFuncao tf (id, tv, bloco) = do 
     let (tipoRetorno, nome, parametrosEsperados) = buscarFuncao tf id
+    verificarVarsDuplicadas nome (parametrosEsperados ++ tv)
     if tipoRetorno == TIgnore then do
         errorMsg ("funcao \"" ++ nome ++ "\" nao esta declarada")
         return (id, tv, bloco)
@@ -235,7 +255,8 @@ verificarFuncao tf (id, tv, bloco) = do
         return (id, tv, novoBloco)
 
 verificarPrograma :: Programa -> Imprimivel.Result Programa
-verificarPrograma (Prog tf codFuncoes varMain codigoPrincipal) = do 
+verificarPrograma (Prog tf codFuncoes varMain codigoPrincipal) = do
+    verificarFuncsDuplicadas tf
     novasFuncoes <- mapM (verificarFuncao tf) codFuncoes
     novaMain <- mapM (verificarComando tf varMain TVoid "principal") codigoPrincipal
     return (Prog tf novasFuncoes varMain novaMain)
