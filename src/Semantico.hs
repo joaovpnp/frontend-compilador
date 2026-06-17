@@ -261,7 +261,6 @@ verificarPrograma (Prog tf codFuncoes varMain codigoPrincipal) = do
     novaMain <- mapM (verificarComando tf varMain TVoid "principal") codigoPrincipal
     return (Prog tf novasFuncoes varMain novaMain)
 
-semantico :: Programa -> IO ()
 semantico prog = do 
     let Result (status, mensagem, novoProg) = verificarPrograma prog
     if status == True then do
@@ -269,8 +268,8 @@ semantico prog = do
     else do
         putStrLn "Pronto para gerar codigo intermediario\n"
     putStrLn mensagem
-    putStrLn "\nNovo programa:\n\n"
-    putStrLn (printProg novoProg)
+    putStrLn ""
+    return (status, novoProg)
 
 -- teste simples para ilustrar o comportamento
 

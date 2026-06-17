@@ -48,9 +48,10 @@ void imprimir(string s, double r)
   
   k = -3;
   k = k - -5;
-
+  print(k);
   print("Numero:");
   read (num);
+  print(num);
   x = fat (4.5);
   a = maior (2.5, 10);
   imprimir("teste:", 1);
