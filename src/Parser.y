@@ -100,7 +100,7 @@ CmdIf : if '(' ExprLogica ')' Bloco                              {If $3 $5 []}
 CmdWhile : while '(' ExprLogica ')' Bloco                        {While $3 $5}
 
 CmdAtrib : Id '=' ExprAritmetica ';'                             {Atrib $1 $3}
-         | Id '=' Literal                                        {Atrib $1 (Lit $3)}
+         | Id '=' Literal ';'                                    {Atrib $1 (Lit $3)}
 
 CmdEscrita : print '(' ExprAritmetica ')' ';'                    {Imp $3}
            | print '(' Literal ')' ';'                           {Imp (Lit $3)}

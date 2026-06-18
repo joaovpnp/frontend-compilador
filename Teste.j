@@ -22,90 +22,6 @@
 	return
 .end method
 
-.method public static maior(DD)D
-	.limit stack 20
-	.limit locals 5
-	iconst_0
-	istore 4
-	dload_0
-	dload_2
-	dcmpg
-	ifgt L0
-	goto L1
-L0:
-	dload_0
-	d2i
-	istore 4
-	goto L2
-L1:
-	dload_2
-	d2i
-	istore 4
-L2:
-	iload 4
-	i2d
-	dreturn
-.end method
-
-.method public static fat(I)I
-	.limit stack 20
-	.limit locals 2
-	iconst_0
-	istore_1
-	iconst_0
-	istore_1
-L3:
-	iload_0
-	iconst_0
-	if_icmpgt L4
-	goto L5
-L4:
-	iload_1
-	iload_0
-	imul
-	istore_1
-	iload_0
-	iconst_1
-	isub
-	istore_0
-	goto L3
-L5:
-	iload_1
-	ireturn
-.end method
-
-.method public static somatorio(I)I
-	.limit stack 20
-	.limit locals 4
-	iconst_0
-	istore_1
-	dconst_0
-	dstore_2
-	iconst_0
-	i2d
-	dstore_2
-L6:
-	iload_1
-	iload_0
-	if_icmplt L7
-	goto L8
-L7:
-	dload_2
-	iload_1
-	i2d
-	dadd
-	dstore_2
-	iload_1
-	iconst_1
-	iadd
-	istore_1
-	goto L6
-L8:
-	dload_2
-	d2i
-	ireturn
-.end method
-
 .method public static imprimir(Ljava/lang/String;D)V
 	.limit stack 20
 	.limit locals 3
@@ -118,51 +34,139 @@ L8:
 	return
 .end method
 
+.method public static calcular(ID)I
+	.limit stack 20
+	.limit locals 4
+	iconst_0
+	istore_3
+	iload_0
+	bipush 10
+	if_icmpge L10
+	goto L8
+L10:
+	dload_1
+	dconst_0
+	dcmpg
+	ifne L7
+	goto L8
+L7:
+	iload_0
+	iconst_2
+	imul
+	istore_3
+	goto L9
+L8:
+	iload_0
+	iconst_5
+	iadd
+	istore_3
+L9:
+	iload_3
+	ireturn
+.end method
+
+.method public static exibirMensagem()V
+	.limit stack 20
+	.limit locals 1
+	aconst_null
+	astore_0
+	ldc "Processamento concluido!"
+	astore_0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	aload_0
+	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+	return
+.end method
+
 .method public static main([Ljava/lang/String;)V
 	.limit stack 20
-	.limit locals 5
+	.limit locals 4
 
 	iconst_0
 	istore_0
-	iconst_0
-	istore_1
-	iconst_0
-	istore_2
 	dconst_0
-	dstore_3
-	iconst_3
-	ineg
-	istore_2
-	iload_2
-	iconst_5
-	ineg
-	isub
-	istore_2
+	dstore_1
+	aconst_null
+	astore_3
+	iconst_0
+	istore_0
+	ldc2_w 10.5
+	dstore_1
+	ldc "Iniciando o programa"
+	astore_3
 	getstatic java/lang/System/out Ljava/io/PrintStream;
-	iload_2
-	invokevirtual java/io/PrintStream/println(I)V
+	aload_3
+	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
 	getstatic java/lang/System/out Ljava/io/PrintStream;
-	ldc "Numero:"
+	ldc "Entrada contador:"
 	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
 	getstatic Teste/read Ljava/util/Scanner;
 	invokevirtual java/util/Scanner/nextInt()I
-	istore_1
-	getstatic java/lang/System/out Ljava/io/PrintStream;
-	iload_1
-	invokevirtual java/io/PrintStream/println(I)V
-	ldc2_w 4.5
-	d2i
-	invokestatic Teste/fat(I)I
 	istore_0
-	ldc2_w 2.5
+L0:
+	iload_0
+	bipush 100
+	if_icmplt L1
+	goto L3
+L3:
+	dload_1
+	dconst_1
+	dcmpg
+	ifle L2
+	goto L1
+L1:
+	iload_0
+	iconst_1
+	iadd
+	istore_0
+	dload_1
+	ldc2_w 2.0
+	ddiv
+	dstore_1
+	iload_0
+	bipush 50
+	if_icmpeq L4
+	goto L5
+L4:
+	iload_0
 	bipush 10
+	imul
+	istore_0
+	goto L6
+L5:
+L6:
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	iload_0
+	invokevirtual java/io/PrintStream/println(I)V
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	dload_1
+	invokevirtual java/io/PrintStream/println(D)V
+	goto L0
+L2:
+	iload_0
+	dload_1
+	ldc 1000000
 	i2d
-	invokestatic Teste/maior(DD)D
-	dstore_3
-	ldc "teste:"
+	dadd
+	invokestatic Teste/calcular(ID)I
+	istore_0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	iload_0
+	invokevirtual java/io/PrintStream/println(I)V
+	invokestatic Teste/exibirMensagem()V
+	ldc "Teste cast int (1) to double"
 	iconst_1
 	i2d
 	invokestatic Teste/imprimir(Ljava/lang/String;D)V
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	ldc "Teste cast double (3.4) to int"
+	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+	ldc2_w 3.4
+	d2i
+	istore_0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	iload_0
+	invokevirtual java/io/PrintStream/println(I)V
 	return
 .end method
 
