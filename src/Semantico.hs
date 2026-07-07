@@ -252,6 +252,13 @@ verificarFuncao tf (id, tv, bloco) = do
         return (id, tv, bloco)
     else do
         novoBloco <- mapM (verificarComando tf (parametrosEsperados ++ tv) tipoRetorno nome) bloco
+        if null novoBloco then do
+            errorMsg ("funcao \"" ++ nome ++ "\" esta vazia")
+        else do
+            case last novoBloco of
+                Ret _ -> return ()
+                _     -> errorMsg ("o ultimo comando da funcao \"" ++ nome ++ "\" deve ser um retorno")
+                
         return (id, tv, novoBloco)
 
 verificarPrograma :: Programa -> Imprimivel.Result Programa
